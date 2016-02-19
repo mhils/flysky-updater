@@ -71,7 +71,7 @@ where `LL LL` denotes the offset we want to start writing to (little-endian two-
 where `DATA`is 256 bytes that should be written on the memory.
 If the updater does not receive a response quickly, it will re-send the write command. Interestingly, this results in a race condition in the original updater: If the updater does not receive a confirmation for `WRITE 0x1800` in time (the timeout here is very low), it will re-send the same command. The remote may however process both commands successfully and then return two confirmations. The updater treats the second confirmation for `0x1800` as a confirmation for the next offset, which may not have been transmitted properly. This updater addresses the problem with very conservative timeouts.
 
-### checksum
+### Checksum
 The checksum is a little-endian two-byte integer that is computed as follows:
 ```python
 checksum = 0xFFFF
@@ -82,8 +82,6 @@ return checksum
 
 ### Example
 
-The ping message is simply `c0` - including prefix and checksum it has a total length of 5:
-`05 00 c0 XX XX`.
-We can now compute the checksum: `0xFFFF - 0x05 - 0x00 - 0xc0 = 0xff3a`
-For example, for the ping message (`05 00 c0`), the checksum is `0xFFFF-0x05-0xc0 = 0xff3a`. Thus, the complete ping message is:
-`05 00 c0 3a ff`
+The ping message is simply `c0` - including prefix and checksum it has a total length of 5: `05 00 c0 XX XX`  
+We can now compute the checksum: `0xFFFF - 0x05 - 0x00 - 0xc0 = 0xff3a`  
+Thus, the complete ping message is: `05 00 c0 3a ff`
