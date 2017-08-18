@@ -243,19 +243,19 @@ func main() {
 		hexFiles, _ := filepath.Glob("*.hex")
 		*filename, err = choose("firmware image", append(binFiles, hexFiles...))
 		if err != nil {
-			fmt.Printf("No firmware image selected: %s.", err)
+			fmt.Printf("No firmware image selected: %s.\n", err)
 			return
 		}
 	}
 
 	data, err := ioutil.ReadFile(*filename)
 	if err != nil {
-		fmt.Printf("Cannot read firmware image %s: %s.", *filename, err)
+		fmt.Printf("Cannot read firmware image %s: %s.\n", *filename, err)
 		return
 	}
 
 	if (len(data) < 0x9000 || len(data) > 0xe7ff) && !*force {
-		fmt.Printf("Unexpected firmare size: %d bytes. Use --force to flash anyway.", len(data))
+		fmt.Printf("Unexpected firmare size: %d bytes. Use --force to flash anyway.\n", len(data))
 		return
 	}
 
@@ -282,7 +282,7 @@ func main() {
 
 		*port, err = choose("serial port", candidates)
 		if err != nil {
-			fmt.Printf("No serial port selected: %s.", err)
+			fmt.Printf("No serial port selected: %s.\n", err)
 			return
 		}
 
@@ -302,25 +302,25 @@ func main() {
 	c := &serial.Config{Name: *port, Baud: 115200, ReadTimeout: time.Second * 1}
 	s, err := serial.OpenPort(c)
 	if err != nil {
-		fmt.Printf("Cannot open serial port %s: %s.", *port, err)
+		fmt.Printf("Cannot open serial port %s: %s.\n", *port, err)
 		return
 	}
 
 	_, err = ping(s)
 	if err != nil {
-		fmt.Printf("Cannot ping the remote: %s.", err)
+		fmt.Printf("Cannot ping the remote: %s.\n", err)
 		return
 	}
 
 	err = update(s, data)
 	if err != nil {
-		fmt.Printf("Error flashing firmware: %s.", err)
+		fmt.Printf("Error flashing firmware: %s.\n", err)
 		return
 	}
 
 	err = restart(s)
 	if err != nil {
-		fmt.Printf("Error restarting the remote: %s.", err)
+		fmt.Printf("Error restarting the remote: %s.\n", err)
 		return
 	}
 
