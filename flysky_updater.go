@@ -194,9 +194,9 @@ func restart(s *serial.Port) error {
 	return WriteFrame(s, []byte{0xC1, 0x00})
 }
 
-func choose(query string, options []string) (string, error) {
+func choose(item string, options []string) (string, error) {
 	if len(options) == 1 {
-		fmt.Printf("Using %s.\n", options[0])
+		fmt.Printf("Using %s as %s.\n", options[0], item)
 		return options[0], nil
 	}
 
@@ -205,9 +205,9 @@ func choose(query string, options []string) (string, error) {
 	}
 
 	ret := ""
-	message := fmt.Sprintf("%s:", strings.Title(query))
+	message := fmt.Sprintf("%s:", strings.Title(item))
 	if len(options) == 0 {
-		fmt.Printf("Could not autodetect %s. Please enter manually.\n", query)
+		fmt.Printf("Could not autodetect %s. Please enter manually.\n", item)
 		prompt := &survey.Input{Message: message}
 		survey.AskOne(prompt, &ret, nil)
 	} else {
@@ -263,6 +263,18 @@ func main() {
 		if err != nil {
 			fmt.Printf("No serial port selected: %s.", err)
 			return
+		}
+
+		if len(candidates) == 1 {
+			start := false
+			prompt := &survey.Confirm{
+				Message: "Start flashing?",
+			}
+			survey.AskOne(prompt, &start, nil)
+			if start == false {
+				fmt.Println("Aborted.")
+				return
+			}
 		}
 	}
 
