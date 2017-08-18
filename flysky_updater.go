@@ -20,8 +20,8 @@ import (
 )
 
 var (
-	port     = kingpin.Flag("port", "port").String()
-	filename = kingpin.Flag("filename", "filename").ExistingFile()
+	port     = kingpin.Flag("port", "Serial port.").Short('p').String()
+	filename = kingpin.Flag("image", "Firmware image.").Short('i').ExistingFile()
 	force    = kingpin.Flag("force", "Force flash.").Short('f').Bool()
 	verbose  = kingpin.Flag("verbose", "Verbose mode.").Short('v').Bool()
 )
