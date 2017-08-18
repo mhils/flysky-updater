@@ -308,7 +308,7 @@ func main() {
 
 	_, err = ping(s)
 	if err != nil {
-		fmt.Printf("Cannot ping the remote: %s.\n", err)
+		fmt.Printf("Cannot ping the remote: %s. Is the remote in firmware update mode?\n", err)
 		return
 	}
 
