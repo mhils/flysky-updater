@@ -147,8 +147,9 @@ func ask_write(s *serial.Port, address int) error {
 }
 
 func write_chunk(s *serial.Port, address int, data []byte) error {
-	write_instruction := []byte{0xc3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01}
+	write_instruction := []byte{0xc3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	binary.LittleEndian.PutUint16(write_instruction[1:3], uint16(address))
+	binary.LittleEndian.PutUint16(write_instruction[5:7], uint16(len(data)))
 	write_instruction = append(write_instruction, data...)
 	write_confirmation := []byte{0xc3, 0x00, 0x00, 0x00, 0x00}
 
@@ -162,27 +163,36 @@ func update(s *serial.Port, firmware []byte) error {
 	bar.Start()
 
 	for bytes_written := 0; bytes_written < len(firmware); bytes_written += 1024 {
-		tries := 0
-	ask:
-		err := ask_write(s, start_address+bytes_written)
+		var err error
+		tries := -1
+	try_write:
+		tries++
+		if 0 < tries && tries < 3 {
+			EmptyRx(s)
+		} else if tries == 3 {
+			return err
+		}
+
+		err = ask_write(s, start_address+bytes_written)
 		if err != nil {
-			tries++
-			if tries <= 3 {
-				EmptyRx(s)
-				goto ask
-			}
+			goto try_write
 		}
 		for chunk := 0; chunk < 1024; chunk += 256 {
 			offset := bytes_written + chunk
-			err = write_chunk(s, start_address+offset, firmware[offset:offset+256])
-			if err != nil {
-				tries++
-				if tries <= 3 {
-					EmptyRx(s)
-					goto ask
-				}
+
+			bytes_to_write := 256
+			// are we at the end of the file?
+			if len(firmware)-offset < 256 {
+				bytes_to_write = len(firmware) - offset
 			}
-			bar.Add(256)
+			if bytes_to_write <= 0 {
+				break
+			}
+			err = write_chunk(s, start_address+offset, firmware[offset:offset+bytes_to_write])
+			if err != nil {
+				goto try_write
+			}
+			bar.Add(bytes_to_write)
 		}
 	}
 
@@ -225,7 +235,6 @@ func choose(item string, options []string) (string, error) {
 }
 
 func main() {
-
 	kingpin.Parse()
 	var err error
 
@@ -238,6 +247,18 @@ func main() {
 			return
 		}
 	}
+
+	data, err := ioutil.ReadFile(*filename)
+	if err != nil {
+		fmt.Printf("Cannot read firmware image %s: %s.", *filename, err)
+		return
+	}
+
+	if (len(data) < 0x9000 || len(data) > 0xe7ff) && !*force {
+		fmt.Printf("Unexpected firmare size: %d bytes. Use --force to flash anyway.", len(data))
+		return
+	}
+
 	if *port == "" {
 		var serialPortFmt string
 		if runtime.GOOS == "windows" {
@@ -276,17 +297,6 @@ func main() {
 				return
 			}
 		}
-	}
-
-	data, err := ioutil.ReadFile(*filename)
-	if err != nil {
-		fmt.Printf("Cannot read firmware image %s: %s.", *filename, err)
-		return
-	}
-
-	if (len(data) < 0x9000 || len(data) > 0xe7ff) && !*force {
-		fmt.Printf("Unexpected firmare size: %d bytes. Use --force to flash anyway.", len(data))
-		return
 	}
 
 	c := &serial.Config{Name: *port, Baud: 115200, ReadTimeout: time.Second * 1}
