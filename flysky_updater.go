@@ -6,16 +6,22 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"time"
+
+	"github.com/AlecAivazis/survey"
+	surveyCore "github.com/AlecAivazis/survey/core"
 	"github.com/cheggaaa/pb"
 	"github.com/tarm/serial"
 	"gopkg.in/alecthomas/kingpin.v2"
-	"io/ioutil"
-	"time"
 )
 
 var (
-	port     = kingpin.Arg("port", "port").Required().String()
-	filename = kingpin.Arg("filename", "filename").Required().String()
+	port     = kingpin.Flag("port", "port").String()
+	filename = kingpin.Flag("filename", "filename").ExistingFile()
 	force    = kingpin.Flag("force", "Force flash.").Short('f').Bool()
 	verbose  = kingpin.Flag("verbose", "Verbose mode.").Short('v').Bool()
 )
@@ -187,8 +193,77 @@ func restart(s *serial.Port) error {
 	return WriteFrame(s, []byte{0xC1, 0x00})
 }
 
+func choose(query string, options []string) (string, error) {
+	if len(options) == 1 {
+		fmt.Printf("Using %s.\n", options[0])
+		return options[0], nil
+	}
+
+	if runtime.GOOS == "windows" {
+		surveyCore.SelectFocusIcon = ">"
+	}
+
+	ret := ""
+	message := fmt.Sprintf("%s:", strings.Title(query))
+	if len(options) == 0 {
+		fmt.Printf("Could not autodetect %s. Please enter manually.\n", query)
+		prompt := &survey.Input{Message: message}
+		survey.AskOne(prompt, &ret, nil)
+	} else {
+		prompt := &survey.Select{
+			Message: message,
+			Options: options,
+		}
+		survey.AskOne(prompt, &ret, nil)
+	}
+
+	if ret == "" {
+		return "", errors.New("interrupted")
+	}
+	return ret, nil
+}
+
 func main() {
+
 	kingpin.Parse()
+	var err error
+
+	if *filename == "" {
+		binFiles, _ := filepath.Glob("*.bin")
+		hexFiles, _ := filepath.Glob("*.hex")
+		*filename, err = choose("firmware image", append(binFiles, hexFiles...))
+		if err != nil {
+			fmt.Printf("No firmware image selected: %s.", err)
+			return
+		}
+	}
+	if *port == "" {
+		var serialPortFmt string
+		if runtime.GOOS == "windows" {
+			serialPortFmt = "COM%d"
+		} else {
+			serialPortFmt = "/dev/ttyUSB%d"
+		}
+
+		var candidates []string
+		for i := 0; i < 255; i += 1 {
+			candidate := fmt.Sprintf(serialPortFmt, i)
+			c := &serial.Config{Name: candidate, Baud: 115200, ReadTimeout: time.Second * 1}
+			s, err := serial.OpenPort(c)
+			if s != nil {
+				s.Close()
+			}
+			if err == nil {
+				candidates = append(candidates, candidate)
+			}
+		}
+
+		*port, err = choose("serial port", candidates)
+		if err != nil {
+			fmt.Printf("No serial port selected: %s.", err)
+			return
+		}
+	}
 
 	data, err := ioutil.ReadFile(*filename)
 	if err != nil {
