@@ -5,14 +5,14 @@ Precompiled binaries for Windows and Linux can be found on the [releases page](h
 
 To my best understanding, it is not possible to accidentally brick the remote by flashing firmware; the initial bootloader is never overwritten.
 
-Usage:
+Usage: Place the firmware image next to the updater and double-click the updater. Alternatively, use the command line interface:
 
 ```
-λ ./flysky-updater-win64.exe COM3 flyplus_beta.hex
+λ ./flysky-updater-win64.exe --port COM3 --image flyplus.hex
 
-0 B / 55.92 KB      [--------------------------------------------]   0.00 %  
-27.25 KB / 55.92 KB [===================>------------------------]  48.73 % 4s  
-56.00 KB / 55.92 KB [============================================] 100.15 % 7s
+0 B / 55.92 KB      [--------------------------------------------]   0.00 %
+27.25 KB / 55.92 KB [===================>------------------------]  48.73 % 4s
+55.92 KB / 55.92 KB [============================================] 100.00 % 7s
 
 Upload completed.
 Success!
@@ -58,18 +58,18 @@ This command just restarts the remote, e.g. after a successful firmware update.
 #### "Can we write?" Command
 The updater sends a "can we write now?" message every 1024 bytes, which, after confirmation, is followed by four write commands à 256 bytes.
 ```
->> c2 LL LL 00 09 00 00 00 00 00 00 00 00
-<< c2 80 LL LL 00 09 00 00 00 00 00 00 00 00
+>> c2 AD DR 00 09 00 00 00 00 00 00 00 00
+<< c2 80 AD DR 00 09 00 00 00 00 00 00 00 00
 ```
-where `LL LL` denotes the offset we want to start writing to (little-endian two-byte integer).
+where `AD DR` denotes the offset we want to start writing to (little-endian two-byte integer).
 
 #### Write command
 ```
->> c3 LL LL 00 00 00 01 DATA
+>> c3 AD DR 00 00 SI ZE DATA
 << c3 00 00 00 00
 ```
-where `DATA`is 256 bytes that should be written on the memory.
-If the updater does not receive a response quickly, it will re-send the write command. Interestingly, this results in a race condition in the original updater: If the updater does not receive a confirmation for `WRITE 0x1800` in time (the timeout here is very low), it will re-send the same command. The remote may however process both commands successfully and then return two confirmations. The updater treats the second confirmation for `0x1800` as a confirmation for the next offset, which may not have been transmitted properly. This updater addresses the problem with very conservative timeouts.
+where `AD DR` is the offset (see above), `SI ZE` the number of bytes (little-endian two-byte integer, usually 256), and `DATA` the  bytes that should be written to memory.
+If the updater does not receive a response quickly, it will re-send the write command. Interestingly, this results in a race condition in the original updater: If the updater does not receive a confirmation for `WRITE 0x1800` in time (the timeout here is very low), it will re-send the same command. The remote may however process both commands successfully and then return two confirmations. The updater treats the second confirmation for `0x1800` as a confirmation for the next offset, which however may not have been transmitted properly. This updater addresses the problem with very conservative timeouts.
 
 ### Checksum
 The checksum is a little-endian two-byte integer that is computed as follows:
