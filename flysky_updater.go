@@ -173,7 +173,8 @@ func update(s *serial.Port, firmware []byte) error {
 			}
 		}
 		for chunk := 0; chunk < 1024; chunk += 256 {
-			err = write_chunk(s, start_address+bytes_written+chunk, firmware[bytes_written+chunk:bytes_written+chunk+256])
+			offset := bytes_written + chunk
+			err = write_chunk(s, start_address+offset, firmware[offset:offset+256])
 			if err != nil {
 				tries++
 				if tries <= 3 {
@@ -267,32 +268,38 @@ func main() {
 
 	data, err := ioutil.ReadFile(*filename)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Cannot read firmware image %s: %s.", *filename, err)
+		return
 	}
 
 	if (len(data) < 0x9000 || len(data) > 0xe7ff) && !*force {
-		panic(fmt.Sprintf("Unexpected firmare size: %d bytes", len(data)))
+		fmt.Printf("Unexpected firmare size: %d bytes. Use --force to flash anyway.", len(data))
+		return
 	}
 
 	c := &serial.Config{Name: *port, Baud: 115200, ReadTimeout: time.Second * 1}
 	s, err := serial.OpenPort(c)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Cannot open serial port %s: %s.", *port, err)
+		return
 	}
 
 	_, err = ping(s)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Cannot ping the remote: %s.", err)
+		return
 	}
 
 	err = update(s, data)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Error flashing firmware: %s.", err)
+		return
 	}
 
 	err = restart(s)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Error restarting the remote: %s.", err)
+		return
 	}
 
 	fmt.Println("Success!")
