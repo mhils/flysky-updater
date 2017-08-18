@@ -5,7 +5,8 @@ Precompiled binaries for Windows and Linux can be found on the [releases page](h
 
 To my best understanding, it is not possible to accidentally brick the remote by flashing firmware; the initial bootloader is never overwritten.
 
-Usage: Place the firmware image next to the updater and double-click the updater. Alternatively, use the command line interface:
+**Usage:** Place a firmware image next to the updater and double-click the updater.  
+Alternatively, use the command line interface:
 
 ```
 λ ./flysky-updater-win64.exe --port COM3 --image flyplus.hex
