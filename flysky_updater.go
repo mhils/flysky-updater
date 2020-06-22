@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AlecAivazis/survey"
-	surveyCore "github.com/AlecAivazis/survey/core"
 	"github.com/cheggaaa/pb"
 	"github.com/tarm/serial"
+	"gopkg.in/AlecAivazis/survey.v1"
+	surveyCore "gopkg.in/AlecAivazis/survey.v1/core"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 

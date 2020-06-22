@@ -24,3 +24,6 @@ _testmain.go
 *.prof
 *.hex
 *-linux64
+
+# Editor junk
+.*.sw[op]
