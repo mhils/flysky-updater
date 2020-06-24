@@ -23,7 +23,7 @@ Success!
 
 If the remote does not start anymore, one can access the firmware update mode as follows:
 
-![](https://maximilianhils.com/upload/2016-02/i6firmwaremodepic.jpg)
+![](https://uploads.hi.ls/2016-02/i6firmwaremodepic.jpg)
 
 
 ## Protocol details
